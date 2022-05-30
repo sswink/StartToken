@@ -15,6 +15,8 @@ contract STT is ERC20,Ownable,ReentrancyGuard{
     address _fee_keeper;
     event changeSellFee(uint256 old_fee,uint256 new_fee);
     event changeFeeOwner(address old_fee_keeper,address new_fee_keeper);
+    event mintInPeriod(address owner,uint256 period,uint256 amount);
+    event mintOutOfPeriod(address owner,uint256 amount);
 
     //1 year = 31536000s hex 0x1e13380
     // ["0x14adf4b7320334b90000000","0xba1d9a70c21cda81000000","0x90c1b1025e16710f000000","0x6765c793fa10079d000000","0x3e09de2596099e2b000000"]
@@ -48,12 +50,14 @@ contract STT is ERC20,Ownable,ReentrancyGuard{
         require(_period_mint[_period] == 1,"STT : This period has minted");
         _mint(owner(),_amount_to_mint[_period]);
         _period_mint[_period] = 2;
+        emit mintInPeriod(owner(),_period,_amount_to_mint[_period]);
     }
 
     function mint_out_of_period(uint256 amount) external onlyOwner nonReentrant{
         require(_unix_time_end.length > 0,"STT : dont have period");
         require(block.timestamp > _unix_time_end[_unix_time_end.length - 1],"STT : Cant use function util end period");
         _mint(owner(),amount);
+        emit mintOutOfPeriod(owner(),amount);
     }
 
     function get_unix_end_time(uint256 _period) external view returns(uint256) {
