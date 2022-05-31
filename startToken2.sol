@@ -8,9 +8,9 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract STT is ERC20,Ownable,ReentrancyGuard{
     using SafeMath for uint256;
-    uint256[] _unix_time_end;
-    uint256[] _amount_to_mint;
-    uint256[] _period_mint;
+    uint256[] public _unix_time_end;
+    uint256[] public _amount_to_mint;
+    uint256[] public _period_mint;
     uint256 _sell_fee;
     address _fee_keeper;
     event changeSellFee(uint256 old_fee,uint256 new_fee);
@@ -18,13 +18,20 @@ contract STT is ERC20,Ownable,ReentrancyGuard{
     event mintInPeriod(address owner,uint256 period,uint256 amount);
     event mintOutOfPeriod(address owner,uint256 amount);
 
-    //1 year = 31536000s hex 0x1e13380
-    // ["0x14adf4b7320334b90000000","0xba1d9a70c21cda81000000","0x90c1b1025e16710f000000","0x6765c793fa10079d000000","0x3e09de2596099e2b000000"]
-    constructor(uint256 interval,uint256[] memory amounts) ERC20("Start Token","STT"){
-        require(amounts.length > 0,"STT : Time & amounts Length is zero");
+    
+    constructor() ERC20("Start Token","STT"){
+        /**
+        * There will distribute 400,000,000 STT in year 1
+        *                       225,000,000 STT in year 2
+        *                       175,000,000 STT in year 3
+        *                       125,000,000 STT in year 4
+        *                       75,000,000  STT in year 5
+        **/
+        uint32[5] memory amounts = [400000000, 225000000, 175000000, 125000000, 75000000];
+        uint256 MINT_INTERVAL = 365 days;
         for(uint256 i = 0;i < amounts.length;i=i.add(1)){
-            _unix_time_end.push((block.timestamp).add(i.mul(interval)));
-            _amount_to_mint.push(amounts[i]);
+            _unix_time_end.push((block.timestamp).add(i.mul(MINT_INTERVAL)));
+            _amount_to_mint.push(amounts[i]*10**uint256(18));
             _period_mint.push(1);
         }
         _sell_fee = 20;
@@ -58,18 +65,6 @@ contract STT is ERC20,Ownable,ReentrancyGuard{
         require(block.timestamp > _unix_time_end[_unix_time_end.length - 1],"STT : Cant use function util end period");
         _mint(owner(),amount);
         emit mintOutOfPeriod(owner(),amount);
-    }
-
-    function get_unix_end_time(uint256 _period) external view returns(uint256) {
-        return _unix_time_end[_period];
-    }
-
-    function get_amount_to_mint(uint256 _period) external view returns(uint256) {
-        return _amount_to_mint[_period];
-    }
-
-    function get_period_mint(uint256 _period) external view returns(uint256) {
-        return _period_mint[_period];
     }
 
     function computeSellFee(uint256 tokenAmount) external view returns (uint256 fee, address to) {
